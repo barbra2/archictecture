@@ -1,0 +1,72 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "API Service Dashboard",
+    "tags": ["books", "api"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Requests",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(books_operations_total[5m]))",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(books_operations_total{status=\"error\"}[5m])) / sum(rate(books_operations_total[5m]))",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Operations by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (operation) (rate(books_operations_total[5m]))",
+            "legendFormat": "{{operation}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Cache Hit Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(books_cache_hits_total[5m]) / (rate(books_cache_hits_total[5m]) + rate(books_cache_misses_total[5m]))",
+            "legendFormat": "Cache Hit Rate"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Active Books Count",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "active_books_count",
+            "legendFormat": "Books"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "5s"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "CQRS Service Dashboard",
+    "tags": ["books", "cqrs", "event-sourcing"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Commands Processed",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(commands_processed_total[5m]))",
+            "legendFormat": "Commands/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Events Stored",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(events_stored_total[5m]))",
+            "legendFormat": "Events/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Commands by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (command_type) (rate(commands_processed_total[5m]))",
+            "legendFormat": "{{command_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Events by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (event_type) (rate(events_stored_total[5m]))",
+            "legendFormat": "{{event_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Command Processing Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(command_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "5s"
+  }
+}

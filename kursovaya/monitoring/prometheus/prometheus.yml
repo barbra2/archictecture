@@ -1,0 +1,41 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'api-service'
+    static_configs:
+      - targets: ['api-service:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'cqrs-service'
+    static_configs:
+      - targets: ['cqrs-service:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'query-service'
+    static_configs:
+      - targets: ['query-service:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+    metrics_path: '/metrics'
+    scrape_interval: 15s

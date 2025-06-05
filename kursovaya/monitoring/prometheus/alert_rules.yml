@@ -1,0 +1,89 @@
+groups:
+  - name: books_api_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(books_operations_total{status="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in API service"
+          description: "API service has error rate {{ $value }} errors per second"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(books_request_duration_seconds_bucket[5m])) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency in API service"
+          description: "95th percentile latency is {{ $value }} seconds"
+
+      - alert: CacheMissRateHigh
+        expr: rate(books_cache_misses_total[5m]) / (rate(books_cache_hits_total[5m]) + rate(books_cache_misses_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High cache miss rate"
+          description: "Cache miss rate is {{ $value | humanizePercentage }}"
+
+  - name: cqrs_service_alerts
+    rules:
+      - alert: CommandProcessingErrors
+        expr: rate(commands_processed_total{status="error"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Command processing errors in CQRS service"
+          description: "CQRS service has {{ $value }} command processing errors per second"
+
+      - alert: EventStoreDown
+        expr: up{job="cqrs-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CQRS service is down"
+          description: "CQRS service has been down for more than 1 minute"
+
+  - name: query_service_alerts
+    rules:
+      - alert: QueryServiceDown
+        expr: up{job="query-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Query service is down"
+          description: "Query service has been down for more than 1 minute"
+
+      - alert: HighQueryLatency
+        expr: histogram_quantile(0.95, rate(query_duration_seconds_bucket[5m])) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High query latency"
+          description: "95th percentile query latency is {{ $value }} seconds"
+
+  - name: infrastructure_alerts
+    rules:
+      - alert: MessageBrokerDown
+        expr: up{job="rabbitmq"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ message broker is down"
+          description: "RabbitMQ has been down for more than 1 minute"
+
+      - alert: APIServiceDown
+        expr: up{job="api-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API service is down"
+          description: "API service has been down for more than 1 minute"

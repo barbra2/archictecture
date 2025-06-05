@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: kursovaya_postgres
+    environment:
+      POSTGRES_DB: books_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - kursovaya_network
+
+  # KeyDB (Redis compatible) for caching
+  keydb:
+    image: eqalpha/keydb:latest
+    container_name: kursovaya_keydb
+    ports:
+      - "6380:6379"
+    command: keydb-server --server-threads 2
+    networks:
+      - kursovaya_network
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: kursovaya_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - kursovaya_network
+
+  # API Service (CRUD operations with caching)
+  api-service:
+    build: ./api-service
+    container_name: kursovaya_api_service
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/books_db
+      - REDIS_URL=redis://keydb:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - keydb
+      - rabbitmq
+    networks:
+      - kursovaya_network
+
+  # CQRS/Event Sourcing Service
+  cqrs-service:
+    build: ./cqrs-service
+    container_name: kursovaya_cqrs_service
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/books_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - kursovaya_network
+
+  # Query Service (Read Models)
+  query-service:
+    build: ./query-service
+    container_name: kursovaya_query_service
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/books_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - kursovaya_network
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kursovaya_prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - kursovaya_network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kursovaya_grafana
+    ports:
+      - "3004:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - kursovaya_network
+
+  # Alertmanager for alerts
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: kursovaya_alertmanager
+    ports:
+      - "9094:9093"
+    volumes:
+      - ./monitoring/alertmanager:/etc/alertmanager
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - kursovaya_network
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  kursovaya_network:
+    driver: bridge
